@@ -1,7 +1,7 @@
 --[[
-OpenWeather weather station
-@author ikubicki
-@version 2.0.0
+OpenMEteo weather station
+@author ikubicki+damasant
+@version 1.0.0
 ]]
 
 function QuickApp:onInit()
