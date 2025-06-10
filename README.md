@@ -1,4 +1,4 @@
-# OpenWeather weather provider
+# OpenMeteo weather provider
 
 An alternative to YR weather provider, that is default weather provider for HC3.
 
@@ -17,14 +17,11 @@ Data updates every 1 hour.
 
 ## Configuration
 
-Main device requires only an `APIKEY` to be specified.
-APIKEY can be obtained from [OpenWeather API keys](https://home.openweathermap.org/api_keys) page.
+Main device DOES NOT requires an `APIKEY`.
 
 To enable companion devices, just toggle them using buttons. 
 
 Configuration will be saved into global variables which guarantee persistance of devices selection.
-
-Optionally, you can change `Source` variable value to `OneCall`, that will use previous data endpoint. Using default value of `Weather`, uses new endpoint, that doesn't require paid subscription.
 
 ## Forecast
 
