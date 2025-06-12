@@ -1,7 +1,6 @@
 --[[
-OpenMEteo weather station
-@author ikubicki+damasant
-@version 1.0.0
+OpenMeteo widget v 1.1.1
+@author damasant
 ]]
 
 function QuickApp:onInit()
@@ -30,15 +29,16 @@ function QuickApp:pullOpenMeteoData()
 
     local callback = function(response)
         if not response or not response.data or response.data == "" then
-            self:error("Empty response from server")
-            self.gui:label1Text("Error retrieving data")
+            self:error("Respuesta vacía del servidor")
+            self.gui:label1Text("Error al obtener datos")
             self.gui:button1Text('retry')
             return
         end
 
         local data = json.decode(response.data)
-        if not data or not data.current_weather then
-            self:error("Unexpected data format from OpenMeteo")
+        self:debug("Data object response:", json.encode(data))
+        if not data or not data.current then
+            self:error("Formato de datos inesperado de OpenMeteo")
             self.gui:label1Text("Error de datos")
             self.gui:button1Text('retry')
             return
@@ -59,30 +59,31 @@ function QuickApp:updateViewElements()
 end
 
 function QuickApp:updateProvider(data)
-    local weather = data.current_weather
-    self:updateProperty("WeatherCondition", tostring(weather.weathercode))
-    self:updateProperty("ConditionCode", tostring(weather.weathercode))
-    self:updateProperty("Temperature", weather.temperature)
-    self:updateProperty("Humidity", data.daily.relative_humidity_2m_max and data.daily.relative_humidity_2m_max[1])
-    self:updateProperty("Wind", weather.windspeed)
-    self:updateProperty("Pressure", data.daily.surface_pressure_max and data.daily.surface_pressure_max[1])
+    local weather = data.current
+    self:updateProperty("WeatherCondition", tostring(weather.weather_code))
+    self:updateProperty("ConditionCode", tostring(weather.weather_code))
+    self:updateProperty("Temperature", weather.temperature_2m)
+    self:updateProperty("Humidity", weather.relative_humidity_2m)
+    self:updateProperty("Wind", weather.wind_speed_10m)
+    self:updateProperty("Pressure", weather.surface_pressure)
+    self:updateProperty("Rain", weather.rain)
 end
 
 function QuickApp:updateDevices(data)
-    local weather = data.current_weather
-    
+    local weather = data.current
+    self:debug("Current weather object response:", json.encode(weather))
     -- TEMPERATURE
-    OWTemperature:get('temperature'):update({value = weather.temperature})
+    OWTemperature:get('temperature'):update({value = weather.temperature_2m})
     -- WIND
-    OWWind:get('wind'):update({value = weather.windspeed, unit = 'km/h'})
+    OWWind:get('wind'):update({value = weather.wind_speed_10m, unit = 'km/h'})
     -- PRESSURE
-    OWSensor:get('pressure'):update({value = data.daily.surface_pressure_max and data.daily.surface_pressure_max[1], unit = 'mbar'})
+    OWSensor:get('pressure'):update({value = weather.surface_pressure, unit = 'mbar'})
     -- HUMIDITY
-    OWHumidity:get('humidity'):update({value = data.daily.relative_humidity_2m_max and data.daily.relative_humidity_2m_max[1], unit = '%'})
+    OWHumidity:get('humidity'):update({value = weather.relative_humidity_2m, unit = '%'})
     -- CLOUDS
-    OWSensor:get('clouds'):update({value = data.daily.cloudcover and data.daily.cloudcover[1], unit = '%'})
+    OWSensor:get('clouds'):update({value = weather.cloud_cover, unit = '%'})
     -- RAIN
-    OWRain:get('rain'):update({value = 0, unit = 'mm'})  -- Open-Meteo solo si pides lluvia diaria
+    OWRain:get('rain'):update({value = weather.rain, unit = 'mm'})  
     -- UVI
     if data.daily.uv_index_max then
         OWSensor:get('uv'):update(data.daily.uv_index_max[1])
@@ -121,7 +122,7 @@ end
 
 function QuickApp:getUrlQueryString()
     local query = string.format(
-        "/forecast?latitude=%s&longitude=%s&current_weather=true&daily=sunrise,sunset,uv_index_max&timezone=auto",
+        "/forecast?latitude=%s&longitude=%s&current=temperature_2m,relative_humidity_2m,is_day,precipitation,rain,cloud_cover,wind_speed_10m,wind_direction_10m,surface_pressure,weather_code&daily=sunrise,sunset,uv_index_max&forecast_days=1&timezone=auto",
         self.latitude,
         self.longitude
     )
@@ -133,7 +134,6 @@ function QuickApp:initializeProperties()
     local locationInfo = api.get('/settings/location')
     self.latitude = locationInfo.latitude
     self.longitude = locationInfo.longitude
-    self.apikey = self:getVariable("APIKEY")
     self.interval = 1
 
     QuickApp.toggles = Toggles:new()
